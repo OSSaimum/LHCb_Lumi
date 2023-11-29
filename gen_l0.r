@@ -94,23 +94,23 @@ ETots = list('ECalET','ECalEtot')
 # Copy Paste the counters to the names variable to indicate for which counters the cut is desired to be defined.
 names = list('ECalET','ECalEtot','ECalETOuterTop', 'ECalETOuterBottom', 'ECalETMiddleTop', 'ECalETMiddleBottom', 'ECalETInnerTop', 'ECalETInnerBottom','RawECalEOuterTop', 'RawECalEOuterBottom', 'RawECalEMiddleTop', 'RawECalEMiddleBottom', 'RawECalEInnerTop', 'RawECalEInnerBottom')
 
-# Copy Paste the counters to the names variable to indicate for which counters a 'sp'ecial attention is needed.
+# Copy Paste the counters to the names variable to indicate for which counters 'sp'ecial attention is needed.
 sp_counts = list('SciFiT1M123','SciFiT1M4','SciFiT2M123','SciFiT2M4','SciFiT3M123','SciFiT3M45')
 
 
 # Create an initial data table w/ the desired counters for the cut function
-in_dt1 <- data.table(file = list.files('.',pattern='^run.*gz$')
+dt1 <- data.table(file = list.files('.',pattern='^run.*gz$')
                  )[, mu :=  as.numeric(sub('run_[0-9]+_mu_', '', sub('.gz$', '', file)))
                    ][, {
                        . <- fread(file, col.names =  c('minute','name','bx','x','y'))[name %in% names]
                        .[,bx.type := ifelse(bx %in% bbs, 'bb', ifelse(bx %in% bes, 'be', ifelse(bx %in% ebs, 'eb', 'ee')))]
                    }, by = .(file, mu)]
 
-# Keep only ees
+# Keep only ees (can be omitted; see line 130-133)
 in_dt1 <- subset(in_dt1, bx.type=='ee')
 
 # Create an initial data table w/o the desired counters for the cut function
-in_dt2 <- data.table(file = list.files('.',pattern='^run.*gz$')
+dt2 <- data.table(file = list.files('.',pattern='^run.*gz$')
                  )[, mu :=  as.numeric(sub('run_[0-9]+_mu_', '', sub('.gz$', '', file)))
                    ][, {
                        . <- fread(file, col.names =  c('minute','name','bx','x','y'))[!name %in% names&!name %in% sp_counts]
@@ -127,9 +127,16 @@ in_dt2 <- subset(in_dt2, bx.type=='ee')
 #        d. jmp=set how far from the distance between the mean and the 'per'th percentile to be added
 #        e. names=counters to be considered for cut
 cut <- function(bin0,rawbin0,per,jmp,names) {
+    # select only ees; note: may seem redundant since it is performed in line 110.
+    # however, after running the first time, the in_dt1 data table will be modified.
+    # as such, any subsequent execution of the cut function is likely to cause an error.
+    # note: line 110 may be removed but kept since it may be needed for analysis.
+    in_dt1 <- subset(dt1, bx.type=='ee')
     n1 <- in_dt1[, {
-                   # for each counter, get the cumulative sum
-                   . <- in_dt1[,ycs:=cumsum(y),by=.(name)]
+                   # for each counter, obtain the 'combined' histogram
+                   . <- in_dt1[,.(y=sum(y)),by=.(name,x)]
+                   # for each counter, obtain the cumulative sum
+                   .[,ycs:=cumsum(y),by=.(name)]
                    # obtain the median of the histogram
                    .[,peak:=max(y),by=.(name)]
                    # get the x value of the median
@@ -143,7 +150,7 @@ cut <- function(bin0,rawbin0,per,jmp,names) {
                    # but it's done for easier debugging
                    .[,icut:=ifelse(ycs == cscut, x, 0),by=.(name)]
                    .[,icut:=ifelse(icut == max(icut), icut, -1),by=.(name)]
-                   # to make sure ee signal doesn't affect, we move 'jmp'*difference between the cut and the peak distance away
+                   # to make sure the ee signal doesn't affect, we move the 'jmp'*difference between the cut and the peak distance away
                    .[icut!=-1,.(xcut=icut+jmp*max(abs(icut-peakx),1)),by=.(name)]
                },]
     # multiply the initial binning (done when converting from the root files)
@@ -156,7 +163,7 @@ cut <- function(bin0,rawbin0,per,jmp,names) {
 }
 
 # get the cut specified by the parameters
-get_cut <- cut(20,100,.999,5,names)
+get_cut <- cut(20,100,.95,5,names)
 
 # obtain the 'sp'ecial cuts for the 'sp'ecified counters:
 # the same algorithm as before except the cut is obtained per file/mu for each counter instead of just per counter
@@ -167,6 +174,8 @@ sp_cut <- function(bin0,rawbin0,per,jmp,sp_count) {
                        . <- fread(file, col.names =  c('minute','name','bx','x','y'))[name %in% sp_count]
                        .[,bx.type := ifelse(bx %in% bbs, 'bb', ifelse(bx %in% bes, 'be', ifelse(bx %in% ebs, 'eb', 'ee')))]
                        . <- subset(., bx.type=='ee')
+                       # next line may be omitted w/o any issues since this code is run per file
+                       .[,.(y=sum(y)),by=.(name,x)]
                        .[,ycs:=cumsum(y),by=.(name,bx.type)]
                        .[,peak:=max(y),by=.(name,bx.type)]
                        .[,ipeak:=ifelse(y == peak, x, 0),by=.(name,bx.type)]
@@ -180,7 +189,10 @@ sp_cut <- function(bin0,rawbin0,per,jmp,sp_count) {
 }
 
 # get the 'sp'ecial cut specified by the parameters
-get_sp_cut <- sp_cut(1,1,.999,5,sp_counts)
+get_sp_cut <- sp_cut(1,1,.95,5,sp_counts)
+
+## note: ideally, 'per' and 'jmp' should be the same for cut and sp_cut
+
 
 
 ### Define a function to calculate the mu using the log zero method
@@ -192,7 +204,7 @@ lz <- function(x, y, nm) {
     emp_ev <- sum(y[x<=sp_cut])
     # obtain the number of all events
     all_ev <- sum(y)
-    # calculate the mu using log zero method
+    # calculate the mu using the log zero method
     lz_mu <- if(emp_ev==0){log(sum(y))
         } else (-log(emp_ev/all_ev)-0.5*(1/emp_ev-1/all_ev))
     # lz_err <- if(emp_ev==0){1
@@ -210,7 +222,7 @@ sp_lz <- function(x, y, nm, sp_mu) {
     emp_ev <- sum(y[x<=sp_cut])
     # obtain the number of all events
     all_ev <- sum(y)
-    # calculate the mu using log zero method
+    # calculate the mu using the log zero method
     lz_mu <- if(emp_ev==0){log(sum(y))
         } else (-log(emp_ev/all_ev)-0.5*(1/emp_ev-1/all_ev))
     # lz_err <- if(emp_ev==0){1
@@ -267,7 +279,7 @@ jmu1[, lz := lz_mu.bb - lz_mu.be - lz_mu.eb + lz_mu.ee]
 # calclation the total number of events (optional)
 jmu1[, nn:=n.bb-n.be-n.eb+n.ee]
 jmu1[, nt:=n.bb+n.be+n.eb+n.ee]
-# fix the bias from be, eb, and ee to get the proper mu value using average method (optional)
+# fix the bias from be, eb, and ee to get the proper mu value using the average method (optional)
 jmu1[, avg := avg_mu.bb - avg_mu.be - avg_mu.eb + avg_mu.ee]
 # arrange the dataset based on the counters column-wise
 jmu2 <- dcast(jmu1, file+mu+minute+lumi+n.bb~name, value.var=c('lz'))
@@ -328,4 +340,3 @@ jmu_res <- pt5[name !=  'mu', {
 print(q(jmu_res, VeloTracks, rel_res, size = I(0.6)) + facet_wrap(~name, scale='free')+ geom_smooth(method=lm, formula=y~x+0) +
     labs(y = paste0('Residual of linear fit (Counter = a*VeloTracks + 0) / fit value')))
 ggsave(paste0(112823,'_2_1_VT_be.pdf'),width = 297, height = 210, units = "mm")
-
