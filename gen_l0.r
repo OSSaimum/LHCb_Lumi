@@ -8,7 +8,7 @@ library(dplyr)
 txt.8 <- element_text(size = 8)
 txt.16 <- element_text(size = 16)
 
-# define function q() for {easier} plottng
+# define function q() for {easier} plotting
 q <- function (d, ...) qplot(data = d, ...)
 # define the function to get the time 
 T = function(time) as.POSIXct(time, origin = "1970-1-1", tz = "CET")
@@ -65,7 +65,24 @@ ees <- setdiff(unique(jeesdt$bx), c(bbs, bes, ebs))
 
 setwd("C:/Users/saimum/R/plume/mu_scan_june/re")
 
-# List of different types of cunters that may be required
+# set of counters to be used (add counters as may require)
+counters = list ("ECalET"               "ECalETInnerBottom"    "ECalETInnerTop"      
+  "ECalETMiddleBottom"   "ECalETMiddleTop"      "ECalETOuterBottom"
+  "ECalETOuterTop"       "ECalEtot"             "RawECalEInnerBottom"       
+  "RawECalEInnerTop"     "RawECalEMiddleBottom" "RawECalEMiddleTop"
+  "RawECalEOuterBottom"  "RawECalEOuterTop"     "SciFiT1M123"
+  "SciFiT1M4"            "SciFiT2M123"          "SciFiT2M4"
+  "SciFiT3M123"          "SciFiT3M45"           "FiducialVeloVertices"      
+  "MuonHitsM2R1"         "MuonHitsM2R2"         "MuonHitsM2R3"
+  "MuonHitsM2R4"         "MuonHitsM3R1"         "MuonHitsM3R2"
+  "MuonHitsM3R3"         "MuonHitsM3R4"         "MuonHitsM4R1"        
+  "MuonHitsM4R2"         "MuonHitsM4R3"         "MuonHitsM4R4"
+  "MuonTracks"           "VeloFiducialTracks"   "VeloTracks"
+  "VeloTracksEtaBin0"    "VeloTracksEtaBin1"    "VeloTracksEtaBin2"
+  "VeloTracksEtaBin3"    "VeloTracksEtaBin4"    "VeloTracksEtaBin5"
+  "VeloTracksEtaBin6"    "VeloTracksEtaBin7"    "VeloVertices")
+
+# List of different types of counters that may be required
 Ecals = list('ECalETOuterTop', 'ECalETOuterBottom', 'ECalETMiddleTop', 'ECalETMiddleBottom', 'ECalETInnerTop', 'ECalETInnerBottom')
 
 SciFis = list('SciFiT1M123','SciFiT1M4','SciFiT2M123','SciFiT2M4','SciFiT3M123','SciFiT3M45')
@@ -106,16 +123,16 @@ in_dt2 <- subset(in_dt2, bx.type=='ee')
 # Function to get the cut for the desired counters
 # Input: a. bin0=initial binning set for ECals in the root file
 #        b. bin0=initial binning set for Raws in the root file
-#        c. per=set how much of the cummulative sum of the Gaussian to be considered
+#        c. per=set how much of the cumulative sum of the Gaussian to be considered
 #        d. jmp=set how far from the distance between the mean and the 'per'th percentile to be added
 #        e. names=counters to be considered for cut
 cut <- function(bin0,rawbin0,per,jmp,names) {
     n1 <- in_dt1[, {
-                   # for each counter, get the cummulative sum
+                   # for each counter, get the cumulative sum
                    . <- in_dt1[,ycs:=cumsum(y),by=.(name)]
                    # obtain the median of the histogram
                    .[,peak:=max(y),by=.(name)]
-                   # get the x vlaue of the median
+                   # get the x value of the median
                    .[,ipeak:=ifelse(y == peak, x, 0),by=.(name)]
                    .[,peakx:=ifelse(ipeak == 0, max(ipeak), ipeak), by=.(name)]
                    # get the y value up to which threshold the cut is desired
@@ -126,14 +143,14 @@ cut <- function(bin0,rawbin0,per,jmp,names) {
                    # but it's done for easier debugging
                    .[,icut:=ifelse(ycs == cscut, x, 0),by=.(name)]
                    .[,icut:=ifelse(icut == max(icut), icut, -1),by=.(name)]
-                   # to make sure ee signal doesn't effect, we move 'jmp'*difference between the cut adn the peak distance away
+                   # to make sure ee signal doesn't affect, we move 'jmp'*difference between the cut and the peak distance away
                    .[icut!=-1,.(xcut=icut+jmp*max(abs(icut-peakx),1)),by=.(name)]
                },]
     # multiply the initial binning (done when converting from the root files)
     n1 <- n1[,.(cut=ifelse(name %in% ETots, xcut*bin0, ifelse(name %in% ECals, xcut*bin0, ifelse(name %in% Raws, xcut*rawbin0, xcut)))),by=name]
     # for the non-desired counters, set the cut to simply zero
     n2 <- in_dt2[,.(cut=0),by=name]
-    # add the two data table onjects and return
+    # add the two data table objects and return
     all <- dplyr::bind_rows(n1, n2)
     data.table(all)
 }
@@ -206,7 +223,7 @@ sp_lz <- function(x, y, nm, sp_mu) {
 
 
 # Function to calculate the mu for the desired data set
-# Input: a. the direcoty where the hist files are
+# Input: a. the directory where the hist files are
 #        b. bin0=initial binning set for ECals in the root file
 #        c. bin0=initial binning set for Raws in the root file
 
@@ -224,7 +241,7 @@ mu_calc <- function(dir,bin0,rawbin0){
                        . <- .[,.(my_mu = ifelse(!name %in% sp_counts,as.numeric(lz(x,y,name)),as.numeric(sp_lz(x,y,name,mu))),xa = sum(x*y)/sum(y),n=sum(y)), by=.(minute,name,bx)]
                        # characterize the bunch crossing types
                        .[,bx.type := ifelse(bx %in% bbs, 'bb', ifelse(bx %in% bes, 'be', ifelse(bx %in% ebs, 'eb', 'ee')))]
-                       # take the avergae of the obtained mu values per counter, per minutes, AND per bunch crossing type
+                       # take the average of the obtained mu values per counter, per minute, AND per bunch crossing type
                        .[, .(lz_mu=sum(my_mu*n)/sum(n),avg_mu = sum(xa*n)/sum(n), n = sum(n)), by = .(minute,name,bx.type)]
                    }, by = .(file,mu)]
 }
@@ -243,7 +260,7 @@ l[, t := t/1e6][,time := T(t)][, t.l := t]
 # concatenate with the given data based on the time information
 cmp <- l[copy(jmu)[, t.dt :=  minute], on=.(t=t.dt),roll='nearest'][abs(t-minute)<2]
 
-# arrange the dataset based on the bunch crossing type for each counter columnwise for the subsequest operations
+# arrange the dataset based on the bunch crossing type for each counter column-wise for the subsequent operations
 jmu1 <- dcast(cmp, file+mu+lumi+minute+name~bx.type, value.var=c('lz_mu','avg_mu','n'),sep='.')
 # fix the bias from be, eb, and ee to get the proper mu value using log zero method
 jmu1[, lz := lz_mu.bb - lz_mu.be - lz_mu.eb + lz_mu.ee]
@@ -252,12 +269,12 @@ jmu1[, nn:=n.bb-n.be-n.eb+n.ee]
 jmu1[, nt:=n.bb+n.be+n.eb+n.ee]
 # fix the bias from be, eb, and ee to get the proper mu value using average method (optional)
 jmu1[, avg := avg_mu.bb - avg_mu.be - avg_mu.eb + avg_mu.ee]
-# arrange the dataset based on the counters columnwise
+# arrange the dataset based on the counters column-wise
 jmu2 <- dcast(jmu1, file+mu+minute+lumi+n.bb~name, value.var=c('lz'))
 # add the plume mu values to the dataset (optional)
 jmu2[,mu.Plume:=lumi/length(bbs)*63.4/11.245]
 setnames(jmu2, 'mu', 'mu.runDB')
-# disregard the minutes when the number of bb events are less than 30% of the median
+# disregard the minutes when the number of bb events is less than 30% of the median
 jmu3 <- jmu2[n.bb > 0.3 * median(n.bb)]
 
 ## optional
@@ -271,7 +288,7 @@ setnames(jmu4, 'mu', 'mu.runDB')
 
 ### plotting
 
-# rearrange the data table row wise for plotting (the last argument of id.vars is the counter w.r.t which we desire to do the plots, in this case, 'VeloVertices')
+# rearrange the data table row-wise for plotting (the last argument of id.vars is the counter w.r.t which we desire to do the plots, in this case, 'VeloVertices')
 pt4 <- melt(jmu3, id.vars = c('file','mu','minute','lumi','n.bb','VeloVertices'),variable.name='name',value.name='x')
 print(q(pt4, VeloVertices, x, size = I(0.4)) + facet_wrap(~name, scale='free')+ geom_smooth(method=lm, formula=y~x+0, linewidth = 0.5) +
     labs(x = 'VeloVertices', y = 'Average per minute'))
@@ -295,7 +312,7 @@ ggsave(paste0(112923,'_2_1_VV_be.pdf'),width = 297, height = 210, units = "mm")
 
 
 ## re-do the process for other desired counters
-# example done for anotehr counter - 'VeloTracks'
+# example done for another counter - 'VeloTracks'
 
 pt5 <- melt(jmu3, id.vars = c('file','mu','minute','lumi','n.bb','VeloTracks'),variable.name='name',value.name='x')
 print(q(pt5, VeloTracks, x, size = I(0.4)) + facet_wrap(~name, scale='free')+ geom_smooth(method=lm, formula=y~x+0, linewidth = 0.5) +
