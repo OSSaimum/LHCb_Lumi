@@ -116,7 +116,7 @@ dt1 <- data.table(file = list.files('.',pattern='^run.*gz$')
                    }, by = .(file, mu)]
 
 # keep only ees (can be omitted; see lines 130-133)
-in_dt1 <- subset(in_dt1, bx.type=='ee')
+in_dt1 <- subset(dt1, bx.type=='ee')
 
 # create an initial data table w/o the desired counters for the cut function
 dt2 <- data.table(file = list.files('.',pattern='^run.*gz$')
@@ -127,7 +127,7 @@ dt2 <- data.table(file = list.files('.',pattern='^run.*gz$')
                    }, by = .(file, mu)]
 
 # keep only ees
-in_dt2 <- subset(in_dt2, bx.type=='ee')
+in_dt2 <- subset(dt2, bx.type=='ee')
 
 # function to get the cut for the desired counters
 # input: a. bin0: initial binning set for ECals in the root file
