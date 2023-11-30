@@ -302,10 +302,10 @@ mu_calc <- function(dir,bin0,rawbin0){
 jmu <- mu_calc("C:/Users/saimum/R/plume/mu_scan_june/re",20L,100L)
 
 # store the data locally
-write.fst(jmu, "C:/Users/saimum/R/plume/mu_scan_june/re/jmu_112823.fst")
+write.fst(jmu, "C:/Users/saimum/R/plume/mu_scan_june/re/jmu_113023.fst")
 
 # read the locally stored data
-jmu <- read.fst('C:/Users/saimum/R/plume/mu_scan_june/re/jmu_112823.fst',as.data.table=TRUE)
+jmu <- read.fst('C:/Users/saimum/R/plume/mu_scan_june/re/jmu_113023.fst',as.data.table=TRUE)
 
 # read the TIMBER data supplied centrally by LHC
 l <- fread('C:\\Users\\saimum\\R\\plume\\mu_scan_june\\TIMBER_data.csv',col.names=c('t','lumi'))
