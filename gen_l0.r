@@ -92,7 +92,7 @@ counters = list("ECalET", "ECalETInnerBottom",    "ECalETInnerTop",
   "VeloTracksEtaBin6",    "VeloTracksEtaBin7",    "VeloVertices")
 
 # list of different types of counters that may be required
-Ecals = list('ECalETOuterTop', 'ECalETOuterBottom', 'ECalETMiddleTop', 'ECalETMiddleBottom', 'ECalETInnerTop', 'ECalETInnerBottom')
+ECals = list('ECalETOuterTop', 'ECalETOuterBottom', 'ECalETMiddleTop', 'ECalETMiddleBottom', 'ECalETInnerTop', 'ECalETInnerBottom')
 
 SciFis = list('SciFiT1M123','SciFiT1M4','SciFiT2M123','SciFiT2M4','SciFiT3M123','SciFiT3M45')
 
