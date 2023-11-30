@@ -376,7 +376,7 @@ rel_res <- pt4[name !=  'mu', {
     }, by = name]
 
 # plot the relative residuals
-print(q(jmu_res, VeloVertices, rel_res, size = I(0.6)) + facet_wrap(~name, scale='free')+ geom_smooth(method=lm, formula=y~x+0) +
+print(q(rel_res, VeloVertices, rel_res, size = I(0.6)) + facet_wrap(~name, scale='free')+ geom_smooth(method=lm, formula=y~x+0) +
     labs(y = paste0('Residual of linear fit (Counter = a*VeloVertices + 0) / fit value')))
 ggsave(paste0(date,'_',ver,'_rel_res_VV.pdf'),width = 297, height = 210, units = "mm")
 
