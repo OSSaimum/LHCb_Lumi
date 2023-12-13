@@ -1,5 +1,5 @@
 # the code below is designed for the analysis of mu scan of LHCb.
-# however, in principle, the codes can be used for other types of runs as well, e.g., VdM scan.
+# however, in principle, the codes can be used for other types of runs as well, e.g., vdM scan, emittance scan.
 # the key functions for calculating the mu are:
 #   a. the cut() function to determine the cut that characterizes the ee signal.
 #   b. the lz() function that calculates the mu using the log zero method.
