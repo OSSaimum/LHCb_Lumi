@@ -181,7 +181,7 @@ in_dt2 <- subset(dt2, bx.type=='ee')
 #        d. jmp: set how far from the distance between the mean and the 'per'th percentile to be added
 #        e. names: counters to be considered for cut
 cut <- function(bin0,rawbin0,per,jmp,names) {
-    # select only ees; note: may seem redundant since it is performed in line 110.
+    # select only ees; note: may seem redundant since it is performed in line 163.
     # however, after running the first time, the in_dt1 data table will be modified.
     # as such, any subsequent execution of the cut function is likely to cause an error.
     # note: line 110 may be removed but kept since it may be needed for analysis.
