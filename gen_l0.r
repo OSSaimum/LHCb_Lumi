@@ -184,7 +184,7 @@ cut <- function(bin0,rawbin0,per,jmp,names) {
     # select only ees; note: may seem redundant since it is performed in line 163.
     # however, after running the first time, the in_dt1 data table will be modified.
     # as such, any subsequent execution of the cut function is likely to cause an error.
-    # note: line 110 may be removed but kept since it may be needed for analysis.
+    # note: line 163 may be removed but kept since it may be needed for analysis.
     in_dt1 <- subset(dt1, bx.type=='ee')
     n1 <- in_dt1[, {
                    # for each counter, obtain the 'combined' histogram
